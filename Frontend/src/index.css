@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+@media print {
+  aside,
+  header,
+  form,
+  button {
+    display: none !important;
+  }
+}

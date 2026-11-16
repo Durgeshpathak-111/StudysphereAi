@@ -1,0 +1,40 @@
+# Environment Variables & Secrets (NEVER PUSH)
+.env
+.env.local
+.env.*.local
+**/.env
+**/.env.*
+
+# Node.js Dependencies & Logs
+node_modules/
+**/node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# Python Virtual Env & Cache
+venv/
+.venv/
+env/
+**/venv/
+**/__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Local Storage, Vector DB & User Uploads
+uploads/
+**/uploads/
+chroma_db/
+**/chroma_db/
+*.sqlite3
+
+# Frontend Production Builds
+dist/
+build/
+**/dist/
+**/build/
+
+# OS & Editor Files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
