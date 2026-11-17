@@ -22,9 +22,16 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
+// const allowedOrigins = [
+//   'http://localhost:5173',
+//   'http://localhost:5174',
+//   process.env.CLIENT_URL,
+// ].filter(Boolean);
+
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
+  'https://studysphere-ai-chi.vercel.app',
   process.env.CLIENT_URL,
 ].filter(Boolean);
 
