@@ -33,7 +33,7 @@ const isLocal = window.location.hostname === 'localhost' || window.location.host
 
 const api = axios.create({
   baseURL: isLocal
-    ? 'http://localhost:5000/api'
+    ? 'http://localhost:5050/api'
     : 'https://studysphere-backend-durgesh.onrender.com/api'
 });
 
