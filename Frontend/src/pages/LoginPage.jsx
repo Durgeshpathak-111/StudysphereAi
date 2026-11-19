@@ -447,7 +447,7 @@ export default function LoginPage() {
 
           {/* Feature Pills */}
           <div className="grid sm:grid-cols-3 gap-3 max-w-2xl">
-            <div
+            {/* <div
               className={`p-3.5 rounded-xl border ${
                 isDark
                   ? "bg-[#111916] border-white/10"
@@ -468,9 +468,9 @@ export default function LoginPage() {
               >
                 Verified PDF page references with every answer.
               </p>
-            </div>
+            </div> */}
 
-            <div
+            {/* <div
               className={`p-3.5 rounded-xl border ${
                 isDark
                   ? "bg-[#111916] border-white/10"
@@ -491,9 +491,9 @@ export default function LoginPage() {
               >
                 Simple English, Hinglish, and Semester Exam format.
               </p>
-            </div>
+            </div> */}
 
-            <div
+            {/* <div
               className={`p-3.5 rounded-xl border ${
                 isDark
                   ? "bg-[#111916] border-white/10"
@@ -514,7 +514,7 @@ export default function LoginPage() {
               >
                 Topic-specific MCQs and weak-topic tracking.
               </p>
-            </div>
+            </div> */}
           </div>
         </div>
 

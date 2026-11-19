@@ -97,17 +97,28 @@ export default function SignupPage() {
               className="w-full px-3 py-2 rounded-lg border border-stone-300 text-sm text-stone-900"
             />
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-stone-600 mb-1">Semester</label>
-            <input
-              type="number"
-              min={1}
-              max={12}
-              value={form.semester}
-              onChange={(e) => setForm({ ...form, semester: Number(e.target.value) })}
-              className="w-full px-3 py-2 rounded-lg border border-stone-300 text-sm text-stone-900"
-            />
-          </div>
+          
+<div>
+  <label className="block text-xs font-semibold text-stone-600 mb-1">
+    Semester
+  </label>
+
+  <select
+    value={form.semester}
+    onChange={(e) =>
+      setForm({ ...form, semester: Number(e.target.value) })
+    }
+    className="w-full px-3 py-2 rounded-lg border border-stone-300 text-sm text-stone-900 bg-white"
+  >
+    <option value="">Select Semester</option>
+    {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
+      <option key={sem} value={sem}>
+        {sem}
+      </option>
+    ))}
+  </select>
+</div>
+
           <button
             type="submit"
             disabled={submitting}
