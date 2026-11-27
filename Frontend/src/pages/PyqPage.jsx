@@ -7,6 +7,7 @@ export default function PyqPage() {
   const [subjectId, setSubjectId] = useState('');
   const [syllabusDocId, setSyllabusDocId] = useState('');
   const [pyqDocId, setPyqDocId] = useState('');
+  const [topic, setTopic] = useState('');
   const [report, setReport] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
 
@@ -33,6 +34,7 @@ export default function PyqPage() {
 
       const { data } = await api.post('/pyq/analyze', {
         subjectId,
+        topic: topic.trim(),
         syllabusDocIds: syllabusDocId ? [syllabusDocId] : [],
         pyqDocIds: pyqDocId ? [pyqDocId] : [],
         notesDocIds: notesIds
@@ -47,7 +49,7 @@ export default function PyqPage() {
 
   return (
     <div className="space-y-6">
-      <form onSubmit={handleAnalyze} className="p-5 rounded-xl border border-current/10 grid grid-cols-1 md:grid-cols-4 gap-3">
+      <form onSubmit={handleAnalyze} className="p-5 rounded-xl border border-current/10 grid grid-cols-1 md:grid-cols-5 gap-3">
         <select
           value={subjectId}
           onChange={(e) => setSubjectId(e.target.value)}
@@ -73,6 +75,14 @@ export default function PyqPage() {
           <option value="">-- Select PYQ Paper PDF --</option>
           {documents.map((d) => <option key={d._id} value={d._id}>{d.originalFileName}</option>)}
         </select>
+
+        <input
+          type="text"
+          value={topic}
+          onChange={(e) => setTopic(e.target.value)}
+          placeholder="Topic (Optional, e.g. Deadlock)"
+          className="px-3 py-2 rounded-lg border border-current/20 bg-transparent text-sm"
+        />
 
         <button disabled={analyzing} className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold">
           {analyzing ? 'Mapping Syllabus & PYQs...' : 'Run PYQ Intelligence'}
@@ -105,9 +115,9 @@ export default function PyqPage() {
               <h3 className="font-bold text-amber-500">Syllabus Topics Missing From Your Notes</h3>
               {report.missingFromNotes?.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
-                  {report.missingFromNotes.map((topic) => (
-                    <span key={topic} className="px-3 py-1 rounded-full text-xs bg-amber-500/15 text-amber-600 font-medium">
-                      {topic}
+                  {report.missingFromNotes.map((missingTopic) => (
+                    <span key={missingTopic} className="px-3 py-1 rounded-full text-xs bg-amber-500/15 text-amber-600 font-medium">
+                      {missingTopic}
                     </span>
                   ))}
                 </div>
@@ -116,6 +126,21 @@ export default function PyqPage() {
               )}
             </div>
           </div>
+
+          {report.predictedPyqs?.length > 0 && (
+            <div className="p-5 rounded-xl border border-current/10 space-y-2">
+              <h3 className="font-bold text-emerald-500">Predicted High-Probability Exam Questions</h3>
+              {report.predictedPyqs.map((pq, i) => (
+                <div key={i} className="p-3 rounded-lg border border-current/10 text-sm">
+                  <div className="flex justify-between text-xs text-emerald-600 font-semibold mb-1">
+                    <span>{pq.unit} • {pq.marks} Marks</span>
+                    <span>Probability: {pq.probability}</span>
+                  </div>
+                  <p>{pq.question}</p>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="p-5 rounded-xl border border-current/10 space-y-2">
             <h3 className="font-bold">Extracted PYQ Questions & Syllabus Mapping</h3>

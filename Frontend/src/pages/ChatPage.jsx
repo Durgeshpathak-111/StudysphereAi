@@ -551,6 +551,394 @@
 
 
 
+// import React, { useEffect, useState } from 'react';
+// import api from '../services/api';
+
+// export default function ChatPage() {
+//   const savedPrefs = (() => {
+//     try {
+//       return JSON.parse(localStorage.getItem('studysphere-ai-prefs') || '{}');
+//     } catch {
+//       return {};
+//     }
+//   })();
+
+//   const [sessions, setSessions] = useState([]);
+//   const [documents, setDocuments] = useState([]);
+//   const [activeSessionId, setActiveSessionId] = useState(null);
+//   const [messages, setMessages] = useState([]);
+//   const [selectedDocId, setSelectedDocId] = useState('');
+//   const [mode, setMode] = useState(savedPrefs.defaultMode || 'english');
+//   const [question, setQuestion] = useState('');
+//   const [sending, setSending] = useState(false);
+
+//   // Split-Screen Citation Verifier State
+//   const [activeCitation, setActiveCitation] = useState(null);
+
+//   const loadSidebar = async () => {
+//     try {
+//       const [histRes, docRes] = await Promise.all([
+//         api.get('/chat/history'),
+//         api.get('/documents'),
+//       ]);
+//       setSessions(histRes.data?.data?.sessions || []);
+//       setDocuments(
+//         (docRes.data?.data?.documents || []).filter(
+//           (d) => d.processingStatus === 'Completed'
+//         )
+//       );
+//     } catch (error) {
+//       console.error('Failed to load chat sidebar data:', error);
+//     }
+//   };
+
+//   useEffect(() => {
+//     loadSidebar();
+//   }, []);
+
+//   const openSession = async (id) => {
+//     try {
+//       const { data } = await api.get(`/chat/${id}`);
+//       setActiveSessionId(id);
+//       setMessages(data.data.session.messages || []);
+//       setActiveCitation(null);
+//     } catch (error) {
+//       console.error('Failed to open chat session:', error);
+//     }
+//   };
+
+//   const startNewChat = () => {
+//     setActiveSessionId(null);
+//     setMessages([]);
+//     setActiveCitation(null);
+//   };
+
+//   const deleteSession = async (id) => {
+//     try {
+//       await api.delete(`/chat/${id}`);
+//       if (activeSessionId === id) startNewChat();
+//       loadSidebar();
+//     } catch (error) {
+//       console.error('Failed to delete session:', error);
+//     }
+//   };
+
+//   const handleAsk = async (e) => {
+//     e.preventDefault();
+//     if (!question.trim() || sending) return;
+
+//     const q = question.trim();
+//     setQuestion('');
+//     setMessages((prev) => [...prev, { role: 'user', content: q }]);
+//     setSending(true);
+
+//     try {
+//       const { data } = await api.post('/chat', {
+//         sessionId: activeSessionId,
+//         question: q,
+//         documentIds: selectedDocId ? [selectedDocId] : [],
+//         mode,
+//       });
+//       setActiveSessionId(data.data.sessionId);
+//       setMessages((prev) => [...prev, data.data.message]);
+//       loadSidebar();
+//     } catch (err) {
+//       setMessages((prev) => [
+//         ...prev,
+//         {
+//           role: 'assistant',
+//           content:
+//             err.response?.data?.message || 'Error contacting RAG service.',
+//         },
+//       ]);
+//     } finally {
+//       setSending(false);
+//     }
+//   };
+
+//   // Resolve PDF URL from matched document metadata or citation object
+//   const resolvePdfUrl = (citation) => {
+//     if (!citation) return '';
+
+//     const matchedDoc = documents.find(
+//       (d) =>
+//         String(d._id) === String(citation.documentId) ||
+//         d.originalFileName === citation.documentName
+//     );
+
+//     const backendOrigin = (
+//       api.defaults.baseURL || 'http://localhost:5000/api'
+//     ).replace(/\/api\/?$/, '');
+
+//     const rawPath =
+//       matchedDoc?.fileUrl ||
+//       matchedDoc?.filePath ||
+//       matchedDoc?.storedFileName ||
+//       matchedDoc?.fileName ||
+//       citation.fileUrl ||
+//       citation.filePath ||
+//       '';
+
+//     if (!rawPath) return '';
+
+//     const pageNum = citation.pageNumber || 1;
+
+//     if (rawPath.startsWith('http')) {
+//       return `${encodeURI(rawPath)}#page=${pageNum}`;
+//     }
+
+//     const normalized = rawPath.replace(/\\/g, '/');
+//     const uploadsIdx = normalized.indexOf('uploads/');
+//     const relativePath =
+//       uploadsIdx !== -1
+//         ? `/${normalized.slice(uploadsIdx)}`
+//         : `/uploads/${normalized.replace(/^\/+/, '')}`;
+
+//     return `${backendOrigin}${encodeURI(relativePath)}#page=${pageNum}`;
+//   };
+
+//   const activePdfUrl = resolvePdfUrl(activeCitation);
+
+//   return (
+//     <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-[calc(100vh-130px)]">
+//       {/* Left History Sidebar */}
+//       <div
+//         className={`${
+//           activeCitation ? 'lg:col-span-2' : 'lg:col-span-3'
+//         } p-3.5 rounded-xl border border-current/10 flex flex-col gap-3 transition-all`}
+//       >
+//         <button
+//           onClick={startNewChat}
+//           className="w-full py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition cursor-pointer"
+//         >
+//           + New Study Chat
+//         </button>
+
+//         <div className="flex-1 overflow-y-auto space-y-1.5">
+//           {sessions.map((s) => (
+//             <div
+//               key={s._id}
+//               onClick={() => openSession(s._id)}
+//               className={`p-2.5 rounded-lg text-xs cursor-pointer flex justify-between items-center transition ${
+//                 activeSessionId === s._id
+//                   ? 'bg-emerald-600/15 text-emerald-500 font-semibold'
+//                   : 'hover:bg-current/5'
+//               }`}
+//             >
+//               <span className="truncate pr-2">{s.title}</span>
+//               <button
+//                 onClick={(e) => {
+//                   e.stopPropagation();
+//                   deleteSession(s._id);
+//                 }}
+//                 className="text-red-500 font-bold px-1 hover:opacity-80 cursor-pointer"
+//                 title="Delete chat"
+//               >
+//                 ×
+//               </button>
+//             </div>
+//           ))}
+//         </div>
+//       </div>
+
+//       {/* Center RAG Chat Panel */}
+//       <div
+//         className={`${
+//           activeCitation ? 'lg:col-span-5' : 'lg:col-span-9'
+//         } rounded-xl border border-current/10 flex flex-col overflow-hidden transition-all`}
+//       >
+//         <div className="p-3 border-b border-current/10 flex flex-wrap gap-2 items-center justify-between">
+//           <select
+//             value={selectedDocId}
+//             onChange={(e) => setSelectedDocId(e.target.value)}
+//             className="px-3 py-1.5 rounded-lg border border-current/20 bg-transparent text-xs"
+//           >
+//             <option value="">All Indexed Study Materials</option>
+//             {documents.map((d) => (
+//               <option key={d._id} value={d._id}>
+//                 {d.originalFileName}
+//               </option>
+//             ))}
+//           </select>
+
+//           <div className="flex gap-1">
+//             {[
+//               { id: 'english', label: 'Simple English' },
+//               { id: 'hinglish', label: 'Hinglish' },
+//               { id: 'exam', label: 'Exam Answer' },
+//             ].map((m) => (
+//               <button
+//                 key={m.id}
+//                 onClick={() => setMode(m.id)}
+//                 className={`px-2.5 py-1 rounded text-xs font-medium transition cursor-pointer ${
+//                   mode === m.id
+//                     ? 'bg-emerald-600 text-white'
+//                     : 'border border-current/15 hover:bg-current/5'
+//                 }`}
+//               >
+//                 {m.label}
+//               </button>
+//             ))}
+//           </div>
+//         </div>
+
+//         <div className="flex-1 p-4 overflow-y-auto space-y-4">
+//           {messages.length === 0 && (
+//             <div className="text-center text-sm opacity-60 py-12">
+//               Ask any question from your uploaded syllabus notes. Click any
+//               citation below an answer to verify the exact PDF page.
+//             </div>
+//           )}
+
+//           {messages.map((m, idx) => (
+//             <div
+//               key={idx}
+//               className={`flex flex-col ${
+//                 m.role === 'user' ? 'items-end' : 'items-start'
+//               }`}
+//             >
+//               <div
+//                 className={`max-w-[90%] p-4 rounded-xl text-sm whitespace-pre-wrap ${
+//                   m.role === 'user'
+//                     ? 'bg-emerald-600 text-white'
+//                     : 'border border-current/15 bg-[rgba(255,255,255,0.03)]'
+//                 }`}
+//               >
+//                 {m.content}
+
+//                 {m.citations?.length > 0 && (
+//                   <div className="mt-3 pt-2.5 border-t border-current/15 space-y-1.5">
+//                     <p className="text-[11px] font-bold uppercase text-emerald-500">
+//                       Source Citations (Click to Verify Page):
+//                     </p>
+//                     {m.citations.map((c, i) => {
+//                       const isSelected =
+//                         activeCitation?.documentId === c.documentId &&
+//                         activeCitation?.pageNumber === c.pageNumber;
+
+//                       return (
+//                         <button
+//                           key={i}
+//                           type="button"
+//                           onClick={() => setActiveCitation(c)}
+//                           className={`w-full text-left text-xs p-2.5 rounded-lg border transition cursor-pointer block ${
+//                             isSelected
+//                               ? 'bg-emerald-600/20 border-emerald-500'
+//                               : 'bg-emerald-600/10 border-transparent hover:border-emerald-500/40'
+//                           }`}
+//                         >
+//                           <div className="flex items-center justify-between gap-2 mb-0.5">
+//                             <strong className="text-emerald-500">
+//                               {c.documentName} (Page {c.pageNumber})
+//                             </strong>
+//                             <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-600 text-white shrink-0">
+//                               Verify Page ↗
+//                             </span>
+//                           </div>
+//                           <span className="opacity-80 line-clamp-2">
+//                             &ldquo;{c.passage}&rdquo;
+//                           </span>
+//                         </button>
+//                       );
+//                     })}
+//                   </div>
+//                 )}
+//               </div>
+//             </div>
+//           ))}
+
+//           {sending && (
+//             <p className="text-xs opacity-60 animate-pulse">
+//               Searching ChromaDB &amp; generating grounded answer...
+//             </p>
+//           )}
+//         </div>
+
+//         <form
+//           onSubmit={handleAsk}
+//           className="p-3 border-t border-current/10 flex gap-2"
+//         >
+//           <input
+//             value={question}
+//             onChange={(e) => setQuestion(e.target.value)}
+//             placeholder="Ask a doubt from your notes..."
+//             className="flex-1 px-3.5 py-2 rounded-lg border border-current/20 bg-transparent text-sm"
+//           />
+//           <button
+//             disabled={sending}
+//             className="px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition cursor-pointer disabled:opacity-50"
+//           >
+//             Send
+//           </button>
+//         </form>
+//       </div>
+
+//       {/* Right Split-Screen PDF Source Verifier Drawer */}
+//       {activeCitation && (
+//         <div className="lg:col-span-5 rounded-xl border border-emerald-500/30 flex flex-col overflow-hidden bg-[rgba(255,255,255,0.02)]">
+//           <div className="p-3 border-b border-current/10 flex items-center justify-between gap-2 bg-emerald-600/10">
+//             <div className="min-w-0">
+//               <p className="text-xs font-bold text-emerald-500 truncate">
+//                 {activeCitation.documentName} — Page {activeCitation.pageNumber}
+//               </p>
+//               <p className="text-[11px] opacity-70 truncate">
+//                 Live Source Verification Viewer
+//               </p>
+//             </div>
+//             <div className="flex items-center gap-1.5 shrink-0">
+//               {activePdfUrl && (
+//                 <a
+//                   href={activePdfUrl}
+//                   target="_blank"
+//                   rel="noreferrer"
+//                   className="px-2.5 py-1 rounded text-[11px] font-medium border border-current/20 hover:bg-current/10"
+//                 >
+//                   Open Tab ↗
+//                 </a>
+//               )}
+//               <button
+//                 type="button"
+//                 onClick={() => setActiveCitation(null)}
+//                 className="px-2.5 py-1 rounded text-xs font-bold bg-red-500/15 text-red-500 hover:bg-red-500/25 cursor-pointer"
+//                 title="Close preview"
+//               >
+//                 ✕
+//               </button>
+//             </div>
+//           </div>
+
+//           {/* Highlighted Extracted Chunk Snippet */}
+//           <div className="p-3 border-b border-current/10 bg-emerald-500/5 text-xs">
+//             <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-500 block mb-1">
+//               Matched Vector Chunk (Page {activeCitation.pageNumber}):
+//             </span>
+//             <p className="opacity-85 italic leading-relaxed max-h-20 overflow-y-auto">
+//               &ldquo;{activeCitation.passage}&rdquo;
+//             </p>
+//           </div>
+
+//           {/* Embedded PDF Viewer jumped to exact page */}
+//           <div className="flex-1 bg-black/20">
+//             {activePdfUrl ? (
+//               <iframe
+//                 key={activePdfUrl}
+//                 src={activePdfUrl}
+//                 title={`${activeCitation.documentName} Page ${activeCitation.pageNumber}`}
+//                 className="w-full h-full border-0"
+//               />
+//             ) : (
+//               <div className="h-full flex items-center justify-center p-6 text-center text-xs opacity-70">
+//                 PDF file path not found on server. Ensure Backend serves
+//                 /uploads statically.
+//               </div>
+//             )}
+//           </div>
+//         </div>
+//       )}
+//     </div>
+//   );
+// }
+
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
 
@@ -569,6 +957,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState([]);
   const [selectedDocId, setSelectedDocId] = useState('');
   const [mode, setMode] = useState(savedPrefs.defaultMode || 'english');
+  const [allowGeneralAi, setAllowGeneralAi] = useState(true); // Hybrid RAG + General AI toggle
   const [question, setQuestion] = useState('');
   const [sending, setSending] = useState(false);
 
@@ -638,6 +1027,7 @@ export default function ChatPage() {
         question: q,
         documentIds: selectedDocId ? [selectedDocId] : [],
         mode,
+        allowGeneralAi, // Backend & FastAPI ko batayega ki PDF ke bahar bhi answer dena hai ya nahi
       });
       setActiveSessionId(data.data.sessionId);
       setMessages((prev) => [...prev, data.data.message]);
@@ -741,25 +1131,42 @@ export default function ChatPage() {
         </div>
       </div>
 
-      {/* Center RAG Chat Panel */}
+      {/* Center RAG + Hybrid AI Chat Panel */}
       <div
         className={`${
           activeCitation ? 'lg:col-span-5' : 'lg:col-span-9'
         } rounded-xl border border-current/10 flex flex-col overflow-hidden transition-all`}
       >
+        {/* Top Controls Toolbar */}
         <div className="p-3 border-b border-current/10 flex flex-wrap gap-2 items-center justify-between">
-          <select
-            value={selectedDocId}
-            onChange={(e) => setSelectedDocId(e.target.value)}
-            className="px-3 py-1.5 rounded-lg border border-current/20 bg-transparent text-xs"
-          >
-            <option value="">All Indexed Study Materials</option>
-            {documents.map((d) => (
-              <option key={d._id} value={d._id}>
-                {d.originalFileName}
-              </option>
-            ))}
-          </select>
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={selectedDocId}
+              onChange={(e) => setSelectedDocId(e.target.value)}
+              className="px-3 py-1.5 rounded-lg border border-current/20 bg-transparent text-xs max-w-[200px]"
+            >
+              <option value="">All Indexed Study Materials</option>
+              {documents.map((d) => (
+                <option key={d._id} value={d._id}>
+                  {d.originalFileName}
+                </option>
+              ))}
+            </select>
+
+            {/* Hybrid General AI Fallback Toggle */}
+            <button
+              type="button"
+              onClick={() => setAllowGeneralAi((prev) => !prev)}
+              title="When ON, AI answers from general knowledge if the topic is not found in your PDFs"
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition cursor-pointer flex items-center gap-1.5 ${
+                allowGeneralAi
+                  ? 'bg-amber-500/15 border-amber-500/40 text-amber-500'
+                  : 'border-current/20 opacity-75 hover:opacity-100'
+              }`}
+            >
+              <span>{allowGeneralAi ? '✨ Smart Hybrid AI: ON' : '📄 Strict PDF Only'}</span>
+            </button>
+          </div>
 
           <div className="flex gap-1">
             {[
@@ -782,78 +1189,115 @@ export default function ChatPage() {
           </div>
         </div>
 
+        {/* Messages Feed */}
         <div className="flex-1 p-4 overflow-y-auto space-y-4">
           {messages.length === 0 && (
-            <div className="text-center text-sm opacity-60 py-12">
-              Ask any question from your uploaded syllabus notes. Click any
-              citation below an answer to verify the exact PDF page.
+            <div className="text-center text-sm opacity-65 py-12 max-w-md mx-auto space-y-2">
+              <p className="font-semibold text-base">
+                {allowGeneralAi
+                  ? 'Ask from your PDFs or any general academic topic!'
+                  : 'Strict PDF Mode: Ask from your uploaded syllabus notes.'}
+              </p>
+              <p className="text-xs opacity-80">
+                {allowGeneralAi
+                  ? 'Smart Hybrid AI checks your uploaded notes first. If the topic is missing in your PDF, it seamlessly answers using General AI knowledge.'
+                  : 'Click any citation below an answer to verify the exact PDF page.'}
+              </p>
             </div>
           )}
 
-          {messages.map((m, idx) => (
-            <div
-              key={idx}
-              className={`flex flex-col ${
-                m.role === 'user' ? 'items-end' : 'items-start'
-              }`}
-            >
+          {messages.map((m, idx) => {
+            const isAssistant = m.role === 'assistant';
+            const hasCitations = m.citations?.length > 0;
+            const isGeneralFallback =
+              isAssistant &&
+              !hasCitations &&
+              (m.sourceType === 'general_ai' ||
+                m.content?.toLowerCase().includes('general ai knowledge'));
+
+            return (
               <div
-                className={`max-w-[90%] p-4 rounded-xl text-sm whitespace-pre-wrap ${
-                  m.role === 'user'
-                    ? 'bg-emerald-600 text-white'
-                    : 'border border-current/15 bg-[rgba(255,255,255,0.03)]'
+                key={idx}
+                className={`flex flex-col ${
+                  m.role === 'user' ? 'items-end' : 'items-start'
                 }`}
               >
-                {m.content}
+                <div
+                  className={`max-w-[90%] p-4 rounded-xl text-sm whitespace-pre-wrap ${
+                    m.role === 'user'
+                      ? 'bg-emerald-600 text-white'
+                      : 'border border-current/15 bg-[rgba(255,255,255,0.03)]'
+                  }`}
+                >
+                  {/* Source Origin Badge on Assistant Replies */}
+                  {isAssistant && (
+                    <div className="mb-2 flex items-center gap-2">
+                      {hasCitations ? (
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-500 border border-emerald-500/30">
+                          ✓ Verified from Uploaded Notes
+                        </span>
+                      ) : isGeneralFallback ? (
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-500 border border-amber-500/30">
+                          ✨ General AI Knowledge (Outside PDF)
+                        </span>
+                      ) : null}
+                    </div>
+                  )}
 
-                {m.citations?.length > 0 && (
-                  <div className="mt-3 pt-2.5 border-t border-current/15 space-y-1.5">
-                    <p className="text-[11px] font-bold uppercase text-emerald-500">
-                      Source Citations (Click to Verify Page):
-                    </p>
-                    {m.citations.map((c, i) => {
-                      const isSelected =
-                        activeCitation?.documentId === c.documentId &&
-                        activeCitation?.pageNumber === c.pageNumber;
+                  {m.content}
 
-                      return (
-                        <button
-                          key={i}
-                          type="button"
-                          onClick={() => setActiveCitation(c)}
-                          className={`w-full text-left text-xs p-2.5 rounded-lg border transition cursor-pointer block ${
-                            isSelected
-                              ? 'bg-emerald-600/20 border-emerald-500'
-                              : 'bg-emerald-600/10 border-transparent hover:border-emerald-500/40'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between gap-2 mb-0.5">
-                            <strong className="text-emerald-500">
-                              {c.documentName} (Page {c.pageNumber})
-                            </strong>
-                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-600 text-white shrink-0">
-                              Verify Page ↗
+                  {hasCitations && (
+                    <div className="mt-3 pt-2.5 border-t border-current/15 space-y-1.5">
+                      <p className="text-[11px] font-bold uppercase text-emerald-500">
+                        Source Citations (Click to Verify Page):
+                      </p>
+                      {m.citations.map((c, i) => {
+                        const isSelected =
+                          activeCitation?.documentId === c.documentId &&
+                          activeCitation?.pageNumber === c.pageNumber;
+
+                        return (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => setActiveCitation(c)}
+                            className={`w-full text-left text-xs p-2.5 rounded-lg border transition cursor-pointer block ${
+                              isSelected
+                                ? 'bg-emerald-600/20 border-emerald-500'
+                                : 'bg-emerald-600/10 border-transparent hover:border-emerald-500/40'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2 mb-0.5">
+                              <strong className="text-emerald-500">
+                                {c.documentName} (Page {c.pageNumber})
+                              </strong>
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-600 text-white shrink-0">
+                                Verify Page ↗
+                              </span>
+                            </div>
+                            <span className="opacity-80 line-clamp-2">
+                              &ldquo;{c.passage}&rdquo;
                             </span>
-                          </div>
-                          <span className="opacity-80 line-clamp-2">
-                            &ldquo;{c.passage}&rdquo;
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {sending && (
             <p className="text-xs opacity-60 animate-pulse">
-              Searching ChromaDB &amp; generating grounded answer...
+              {allowGeneralAi
+                ? 'Searching your notes & preparing AI answer...'
+                : 'Searching vector store & generating grounded answer...'}
             </p>
           )}
         </div>
 
+        {/* Input Form */}
         <form
           onSubmit={handleAsk}
           className="p-3 border-t border-current/10 flex gap-2"
@@ -861,7 +1305,11 @@ export default function ChatPage() {
           <input
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
-            placeholder="Ask a doubt from your notes..."
+            placeholder={
+              allowGeneralAi
+                ? 'Ask from your notes OR any topic outside the PDF...'
+                : 'Ask a doubt strictly from your uploaded notes...'
+            }
             className="flex-1 px-3.5 py-2 rounded-lg border border-current/20 bg-transparent text-sm"
           />
           <button
