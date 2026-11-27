@@ -1143,7 +1143,7 @@ export default function ChatPage() {
             <select
               value={selectedDocId}
               onChange={(e) => setSelectedDocId(e.target.value)}
-              className="px-3 py-1.5 rounded-lg border border-current/20 bg-transparent text-xs max-w-[200px]"
+              className="px-3 py-1.5 rounded-lg border border-current/20 bg-transparent text-xs max-w-48"
             >
               <option value="">All Indexed Study Materials</option>
               {documents.map((d) => (
